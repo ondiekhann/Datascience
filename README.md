@@ -1,2 +1,2 @@
-# Datascience
-R and Python in towards Data Science
+# Python for Datascience
+Python towards Data Science
