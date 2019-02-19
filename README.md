@@ -1,2 +1,2 @@
-# Python for Datascience
-Python towards Data Science
+# R and Python for Datascience
+R and Python projects,materials and practices towards Data Science
