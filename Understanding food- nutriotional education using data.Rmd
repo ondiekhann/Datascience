@@ -1,0 +1,75 @@
+---
+title: 'Understanding Food: Nutritional Education with Data'
+author: "ondiekhann"
+date: "February 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+We use the [USDA.,csv](https://prod-edxapp.edx-cdn.org/assets/courseware/v1/3ef78a720083c74cd2649289a475158d/asset-v1:MITx+15.071x+2T2017+type@asset+block/USDA.csv) to gain some insight on food nutrition. Dataset contains all foods in the USDA database in 100g amounts.
+```{r include = FALSE}
+USDA <- read.csv("USDA.csv")
+```
+
+### Exploring the data
+
+**Summary**
+
+```{r echo =FALSE, results = 'asis'}
+library(knitr)
+kable(summary(USDA))
+```
+
+Interstingly, the maximum level of sodium is 38758 mg, which exceeds the daily recommended max of 2300 mg.It would interest us to know which food this maximum level of Sodium belongs to
+```{r}
+which.max(USDA$Sodium)
+USDA$Description[265]
+```
+It's not surprising that the food substance containing the maximum level of sodium is the table salt.
+
+Let's explore out which foods contain more than 10000mg of Sodium
+```{r results = 'asis'}
+HighSodium <- subset(USDA, Sodium > 10000)
+kable(HighSodium)
+```
+
+How much sodium does CAVIAR contain in 100g?
+```{r}
+USDA$Sodium[match("CAVIAR", USDA$Description)]
+```
+How big is this value? Lets's compare it to the mean and standard deviation of Sodium levels aross the dataset
+```{r}
+summary(USDA$Sodium)
+sd(USDA$Sodium, na.rm= TRUE)
+```
+Note that if we sum the resulting mean and standard deviation, we have around 1400mg, which is stiil smaller than in 100g of CAVIAR. This means that CAVIAR is pretty rich in Sodium compared to most of the foods in our dataset.
+
+**Visualizations**
+```{r echo = FALSE, message= FALSE, warning= FALSE}
+library(ggplot2)
+library(plotly)
+p <- ggplot(USDA, aes(Protein,TotalFat, color = "red")) + geom_point() + xlab ("Protein") + ylab("Fat") + ggtitle("Protein vs Total Fat")
+ggplotly(p)
+```
+The graph has an interesting triangular shape. It looks like foods that re higher in proteins are typically lower in fats and vice- versa.
+
+```{r echo = FALSE, warning= FALSE, message= FALSE}
+ggplot(USDA,aes(VitaminC)) +  geom_histogram(fill = "blue") + xlab("Vitamin C(mg)") + ggtitle("Histogram of Vitamin C levels")
+
+```
+
+*Zooming into the histogram above:*
+
+```{r echo = FALSE, warning= FALSE, message= FALSE}
+h <- ggplot(USDA,aes(VitaminC)) +  geom_histogram(fill = "blue",breaks = seq(0,100,by = 1)) + xlim(c(0,100)) + xlab("Vitamin C(mg)") + ggtitle("Histogram of Vitamin C levels")
+ggplotly(h)
+```
+Before breaking down the histogram, initial observation revealed that more than 6000 foods have <200mg of VitaminC. However, after breakng down the histogram cells, it's clear that over 4500 foods have infact <1mg of VitaminC.
+
+```{r echo = FALSE,warning = FALSE}
+bp <- ggplot(USDA, aes(,Sugar)) + geom_boxplot(fill = "orange") + ylab("Sugar (mg)") + ggtitle ("Boxplot of Sugar Levels")
+ggplotly(bp)
+```
+The average amount of sugar seems pretty low across the dataset (around 5mg), but there are alot of outliers with extremely high levels of sugar.
