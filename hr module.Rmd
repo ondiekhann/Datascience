@@ -1,0 +1,222 @@
+---
+title: "HR Module"
+author: "ondiekhann"
+date: "February 21, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Description
+
+Human Resource key performance Indicators that will be useful in measuring performance of your organization
+
+### About the Data Needed
+
+* **Average Monthly Hours** - The total monthly hours an employee clocks in
+* **Department** - The type of department an employee worked under. Which includes sales, hr, accounting, technical, support, IT, management, product management and marketing.
+* **Evaluation** - An employee's evaluation score in percentage.
+* **Project Count** - The number of projects an employee has done.
+* **Promotion** - Whether an employee had a promotion within the last five years. 0 = No, 1 = Yes.
+* **Salary** - The type of salary an employee got, which ranges from low, medium or high.
+* **Satisfaction** - An employee's level of satisfaction n percentage.
+* **Work Accident** - Whether an employee had accident or not. 0 = No, 1 = Yes.
+* **Years At Company** - The number of years the emloyee was at the company.
+
+### Exploratory Data Analysis
+
+1. The data has **9 independent variables** and **14,999 employees**
+2. The turnover rate is **23.81%**
+3. The mean satisfaction is **61.28%**
+```{r echo = FALSE, include = FALSE}
+hr <- read.csv("hr_comma_sep.csv")
+summary(hr)
+```
+### **Visualizations**
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+library(ggplot2)
+library(plotly)
+left <- ggplot(hr,aes(left)) + geom_bar(fill = "blue") + xlab("Left") + ylab("Number of employees") + ggtitle("HOW MANY WORKERS LEFT THEIR JOB?")
+ggplotly(left)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(forcats)
+dept <- ggplot(hr,aes(x = fct_infreq(department))) + geom_bar(fill = "green" ,alpha = 0.4) +  theme(axis.text.x = element_text(angle = 45)) + xlab("Department") + ylab("Number of Employees") + ggtitle("NUMBER OF EMPLOYEES BY DEPARTMENT")
+ggplotly(dept)
+```
+
+```{r echo = FALSE}
+
+sal <- ggplot(hr,aes(salary,fill = department)) + geom_bar(position = "dodge") + xlab("Salary") + ylab("Number of Employees") + ggtitle("SALARY COUNT BY DEPARTMENT")
+ggplotly(sal)
+```
+```{r echo = FALSE}
+sal_left <- ggplot(hr, aes(left, fill = department)) + geom_bar(position = "dodge") + facet_grid(~salary) + ggtitle("SALARY OF THOSE WHO LEFT VS THOSE WHO STAYED") +xlab("Left") + ylab("Number of Employees")
+  
+ggplotly(sal_left)
+```
+```{r echo = FALSE}
+sal_dist <- ggplot(hr, aes(department,fill = salary)) + geom_bar(position = "fill") +  theme(axis.text.x = element_text(angle = 45)) + xlab("Depertment") + ylab("Salary Proportions") + ggtitle("SALARY PROPORTIONS WITHIN DEPARTMENTS")
+ggplotly(sal_dist)
+```
+
+###CORRELATION###
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+library(corrplot)
+corl <- corrplot(cor(hr[c("satisfaction_level","last_evaluation","number_project","average_montly_hours","time_spend_company","Work_accident","left","promotion_last_5years")]), method="ellipse", order="AOE")
+
+```
+
+**Summary**
+
+1. From the correlogram there is a positive (+ve) correlation between the variables: average monthly hours, number of projects and evaluation. This means that an employees who did more projects and worked more hours had higher evaluations.
+
+2. For the negative (-ve) correlations, the most important feature that correlated with our target variable (turnover), is satisfaction level. this supports our initial intuition that employees who tend to quit would generally have lower satisfaction level.
+
+**Conclusion**
+
+1. What features affect our target variable (turnover) the most?
+2. What features have strong correlations with each other?
+3. Can we do a more in-depth examination of these features?
+
+```{r echo = FALSE}
+acc <- ggplot(hr,aes(Work_accident)) + geom_bar(fill = "blue", color = "red") + xlab("Accident") + ylab("Number of Employees") + ggtitle("HOW MANY PEOPLE HAD ACCIDENTS?")
+ggplotly(acc)
+```
+
+####WHICH FEATURES ARE THE MOST IMPORTANT?####
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+library(rpart)
+	library(rpart.plot)
+	CARTmodel <- rpart(left~., data = hr, method ="class")
+	prp(CARTmodel)
+```
+
+**Summary**
+
+1. By using a decision tree classifier, we could rank the features used for the prediction. The top four features were: satisfaction, years at company, evaluation and the number of projects. This helpful in creating our logistic regression model because it will be more interpretable when we use less features.
+
+```{r echo = FALSE}
+saltv <-ggplot(hr,aes(left, fill = salary)) + geom_bar(position = "dodge") + coord_flip() + ylab("Number of Employees") + xlab("Turnover") + ggtitle("SALARY VS TURNOVER")
+ggplotly(saltv)
+```
+
+**Summary**
+
+1. Majority of employees who left either had low or medium salary.
+2. Barely an employee left with high salary.
+3. Employees with low to average salaries tend to leave the company.
+
+**Conclusion**
+
+1. What is the work environment like for low, medium and high salaries?
+2. What made employees with high salaries to leave?
+
+```{r echo = FALSE}
+deptv <- ggplot(hr, aes(department, fill = as.factor(hr$left))) + geom_bar(position = "dodge") + theme(axis.text.x = element_text(angle = 45))+ xlab("Department") + ylab("Number of Employees") + ggtitle("DEPARTMENT VS TURNOVER") + labs(fill = "Left")
+ggplotly(deptv)
+```
+ **Summary**
+ 
+ 1. The sales, technical and support department were the top three departments to have employee turnover.
+ 2. The management department had the lowest turnover.
+ 
+ **Conclusion**
+ 
+ 1. If we had more information on each department, can we pinpoint a more direct cause for employee turnover?
+ 
+```{r echo = FALSE}
+proj <- ggplot(hr,aes(as.factor(hr$number_project), fill = as.factor(hr$left))) + geom_bar(position = "dodge", alpha = 0.6) + ggtitle("PROJECTS VS TURNOVER") + xlab ("Number of Projects") + ylab("Number of Employees") + labs(fill = "Left")
+ggplotly(proj)
+
+```
+ **Summary**
+ 
+ 1.More than half of the employees with 2,6 and 7 projects left the company.
+ 2. Majority of the employees who did not leave the company had 3,4 and 5 projects.
+ 3. All of the employees with 7 projects left the company.
+ 4. There is an increase in employee turnover rate at the number of projects increase. 
+ 
+ **Conclusion**
+ 
+ 1. Why are employees leaving at the lower/ higher spectrum of project counts?
+ 2. Does this mean that employees with project counts 2 or less don't work hard enough or are not highly valued, thus leaving the company?
+ 3. Do employees with 6+ projects get overworked, thus, leaving the company?
+ 
+```{r echo = FALSE}
+years <- ggplot(hr,aes(as.factor(hr$time_spend_company), fill = as.factor(hr$left))) + geom_bar(position = "dodge") + ggtitle("YEARS IN COMPANY VS TURNOVER") + xlab ("Number of Years") + ylab("Number of Employees") + labs(fill = "Left")
+ggplotly(years)
+```
+ 
+ **Summary**
+ 
+ 1. More than half of the employees with 4 and 5 years left the company.
+ 2. Employees with 5 years should highly be looked into.
+ 
+ **Conclusion**
+ 
+ 1. Why are employees leaving mostly at the 3-5 year range?
+ 2. Who are these employees that left?
+ 3. Are these employees part-time or contractors?
+ 
+```{r echo = FALSE}
+clust <- ggplot(hr, aes(satisfaction_level, last_evaluation, color = left)) + geom_point() + ggtitle("SATISFACTION VS EVALUATION") + xlab("Satisfaction") + ylab("Evaluation")
+ggplotly(clust)
+```
+ 
+ **Summary**
+ 
+ 1. There are three distinct clusters for employees who left the company.
+ 2. Cluster 1 (Hard-working, Sad Employee): Satisfaction was below 0.2 and evaluations were greater than 0.75. This could be a good indication that employees who left the company were good workers who felt horrible at their job.
+ 3. Cluster 2 (Bad and Sad Employee): Satisfaction between 0.35 - 0.45 and evaluations below ~0.58. This could be seen as employees who were badly evaluated and felt bad at work.
+ 4. Cluster 3 (Hard-working and Happy Employee): Satisfaction between 0.7-1.0 and evaluations were greater than 0.8. this could mean that employees in this cluster were 'ideal'. They loved their work and were evaluated highly for their performance. 
+ 
+ **Conclusion**
+ 
+ 1. Question: What could be the reason for feeling so horrible when you are highly evaluated? Could it be working too hard? Could Cluster 1 mean employees who are "overworked?"
+ 2. Question: Could Cluster 2 mean employees who "under-performed?"
+ 3. Question: Could Cluster 3 mean that employess left because they found another job opportunity?
+ 
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+
+ggplotly(ggplot(hr,aes(average_montly_hours))+geom_histogram(fill = "blue") + ggtitle("DISTRIBUTION OF AVERAGE MONTHLY HOURS") + ylab("Number of Employees"))
+
+
+ggplotly(ggplot(hr,aes(satisfaction_level))+geom_histogram(fill = "orange") + ggtitle("DISTRIBUTION OF SATISFACTION LEVELS") + ylab("Number of Employees"))
+
+
+ggplotly(ggplot(hr,aes(last_evaluation))+geom_histogram(fill = "green") + ggtitle("DISTRIBUTION OF EVALUATION") + ylab("Number of Employees"))
+
+```
+ 
+ **Summary**
+ 
+ 1. Satisfaction: There is a huge spike for employees with low satisfaction and high satisfaction.
+ 2. Evaluation: There is a bimodal distribution of employees for low evaluation (less than 0.6) and high evaluations (more than 0.8).
+ 3. Average Monthly Hours: There is another bimodal distribution of employees with lower and higher average monthly hours (less than 150 hours & more than 250 hours).
+ 4. The evaluation and average monthly hour graphs both share a similar distribution.
+ 5. Employees with lower average monthly hours were evaluated less and vice-versa.
+ 6. If you look back at the correlation matrix, the high correlation between evaluation and average monthly hours does support this finding.
+ 
+ **Conclusion**
+ 
+ 1. Is there a reason for the high spike in low satisfaction of employees?
+ 2. Could employees be grouped in a way with these features?
+ 3. Is there a correlation between evaluation and average monthly hours?
+ 
+###**SUMMARY OF THE ANALYSIS**###
+ 
+ 1. Employees generally left when they are underworked (less than 150hr/month or 6hr/day).
+ 2. Employees generally left when they are overworked (more than 250hr/month or 10hr/day).
+ 3. Employees with either really high or low evaluations should be taken into consideration for high turnover rate.
+ 4. Employees with low to medium salaries are the bulk of employee turnover.
+ 5. Employees that had 2, 6 or 7 project counts were at the risk of leaving the company.
+ 6. Employee satisfaction is the highest indicator for employee turnover.
+ 7. Employees that had 4 and 5 years at the Company should be taken into consideration for high turnover rate.
+ 8. Employee satisfaction, year at company and evaluation were the three biggest factors in determining turnover.
